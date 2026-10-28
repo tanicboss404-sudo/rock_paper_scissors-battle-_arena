@@ -1,0 +1,730 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#080c18">
+    <meta name="description" content="Professional Rock Paper Scissors Battle Arena - Solo vs AI, 2-Player Local Duel, and Real-time Online Multiplayer">
+
+    <title>Rock Paper Scissors | Pro Battle Arena</title>
+
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <link rel="alternate icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚔️</text></svg>">
+    <link rel="stylesheet" href="rock.css">
+
+    <!-- Firebase Realtime Database SDKs for Real-Time Online Multiplayer -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+</head>
+
+<body>
+
+    <!-- Confetti & Particle FX Canvas -->
+    <canvas id="fx_canvas" class="fx-canvas"></canvas>
+
+    <main class="app-shell">
+
+        <!-- Top Header Navigation -->
+        <header class="topbar">
+
+            <div class="brand-group">
+                <div class="brand-mark">R<span>PS</span></div>
+                <div class="brand-copy">
+                    <p class="eyebrow">THE ULTIMATE SHOWDOWN</p>
+                    <h1>Rock <span>Paper</span> Scissors <span class="badge-pro">PRO</span></h1>
+                </div>
+            </div>
+
+            <!-- Mode Selector Tabs (Solo, 2-Player Local, Online Multiplayer) -->
+            <nav class="mode-tabs" aria-label="Game modes">
+                <button class="mode-tab active" id="tab_cpu" type="button" data-mode="cpu">
+                    <span class="tab-icon">🤖</span>
+                    <span class="tab-text">VS CPU</span>
+                </button>
+                <button class="mode-tab" id="tab_pvp" type="button" data-mode="pvp">
+                    <span class="tab-icon">⚔️</span>
+                    <span class="tab-text">2-PLAYER DUEL</span>
+                </button>
+                <button class="mode-tab" id="tab_online" type="button" data-mode="online">
+                    <span class="tab-icon">🌐</span>
+                    <span class="tab-text">ONLINE DUEL</span>
+                </button>
+            </nav>
+
+            <!-- Utility Action Controls -->
+            <div class="top-actions">
+                <button class="action-btn" id="sound_toggle_btn" type="button" title="Toggle Sound (M)" aria-label="Toggle Sound">
+                    <span id="sound_icon">🔊</span>
+                    <span class="action-btn-label">Sound</span>
+                </button>
+                <button class="action-btn" id="chat_toggle_btn" type="button" title="Toggle In-Game Comms" aria-label="Toggle Arena Chat" style="display: none;">
+                    <span>💬</span>
+                    <span class="action-btn-label">Chat</span>
+                    <span class="chat-unread-badge" id="chat_unread_badge" style="display: none;">0</span>
+                </button>
+                <button class="action-btn" id="cloud_setup_btn" type="button" title="Cloud Multiplayer Configuration" aria-label="Cloud Configuration">
+                    <span class="cloud-status-dot" id="cloud_status_dot"></span>
+                    <span class="action-btn-label">Cloud</span>
+                </button>
+                <button class="action-btn" id="controls_modal_btn" type="button" title="Game Controls & Rules" aria-label="View Controls and Rules">
+                    <span>⌨️</span>
+                    <span class="action-btn-label">Controls</span>
+                </button>
+            </div>
+
+        </header>
+
+        <!-- Online Multiplayer Lobby (Shown when in Online mode and not in a room) -->
+        <section class="online-lobby" id="online_lobby" style="display: none;" aria-label="Online Matchmaking Lobby">
+
+            <div class="lobby-header">
+                <span class="eyebrow">GLOBAL MULTIPLAYER ARENA</span>
+                <h2>Battle Real Players <span>Online</span></h2>
+                <p class="lobby-subtitle">
+                    Create a private battle room or join via invitation link from any phone, tablet, or PC worldwide.
+                </p>
+            </div>
+
+            <!-- Setup Required Alert Banner -->
+            <div class="lobby-config-alert" id="lobby_config_alert" style="display: none;">
+                <div class="lobby-config-alert-content">
+                    <span class="lobby-alert-icon">⚙️</span>
+                    <div>
+                        <strong>Firebase Setup Required:</strong> Connect your free Firebase Realtime Database to enable online multiplayer.
+                    </div>
+                </div>
+                <button class="lobby-config-alert-btn" id="lobby_config_alert_btn" type="button">Cloud Setup</button>
+            </div>
+
+            <!-- Player Profile Input -->
+            <div class="player-profile-bar">
+                <label for="player_name_input" class="profile-label">YOUR WARRIOR TAG:</label>
+                <div class="profile-input-wrap">
+                    <span class="profile-avatar-icon">⚡</span>
+                    <input type="text" id="player_name_input" class="player-name-input" maxlength="15" placeholder="Enter your player name" value="Commander">
+                </div>
+            </div>
+
+            <!-- Matchmaking Options Grid -->
+            <div class="lobby-grid">
+
+                <!-- Card 1: Create Private Room (Host) -->
+                <div class="lobby-card create-card">
+                    <div class="lobby-card-badge">HOST A MATCH</div>
+                    <div class="lobby-card-icon">🚀</div>
+                    <h3>Create Private Room</h3>
+                    <p>Generate a unique room link to invite a friend to an online showdown.</p>
+
+                    <div class="lobby-series-pick">
+                        <span class="lobby-pick-label">Target Series:</span>
+                        <div class="lobby-radio-group">
+                            <button class="lobby-series-chip active" type="button" data-series="3">First to 3</button>
+                            <button class="lobby-series-chip" type="button" data-series="5">First to 5</button>
+                            <button class="lobby-series-chip" type="button" data-series="0">Endless</button>
+                        </div>
+                    </div>
+
+                    <button class="lobby-btn primary-lobby-btn" id="create_room_btn" type="button">
+                        <span>⚔️</span> Create Battle Room
+                    </button>
+                </div>
+
+                <!-- Card 2: Join Existing Room (Guest) -->
+                <div class="lobby-card join-card">
+                    <div class="lobby-card-badge">ENTER COMBAT</div>
+                    <div class="lobby-card-icon">🔗</div>
+                    <h3>Join with Code</h3>
+                    <p>Enter an invite code provided by a friend to step into their arena.</p>
+
+                    <div class="join-input-group">
+                        <input type="text" id="join_room_input" class="join-input" placeholder="e.g. RPS-784" maxlength="12" autocomplete="off" spellcheck="false">
+                    </div>
+
+                    <button class="lobby-btn secondary-lobby-btn" id="join_room_btn" type="button">
+                        <span>🚀</span> Join Room
+                    </button>
+                </div>
+
+            </div>
+
+            <!-- Cloud Status Indicator -->
+            <div class="lobby-cloud-footer">
+                <div class="cloud-status-pill" id="cloud_status_pill">
+                    <span class="cloud-status-indicator" id="cloud_indicator_dot"></span>
+                    <span id="cloud_status_text">Connecting to Realtime Cloud...</span>
+                </div>
+                <button class="cloud-config-link" id="cloud_modal_link" type="button">Configure Firebase Backend</button>
+            </div>
+
+        </section>
+
+        <!-- Online Room Active Hub (Shown when inside an active online room) -->
+        <section class="online-room-hub" id="online_room_hub" style="display: none;" aria-label="Active Online Room">
+
+            <div class="room-hub-top">
+                <div class="room-id-tag">
+                    <span class="room-id-label">ROOM:</span>
+                    <span class="room-id-code" id="hub_room_code">RPS-000</span>
+                    <button class="room-copy-badge-btn" id="hub_copy_code_btn" type="button" title="Copy Room Code">Copy Code</button>
+                </div>
+
+                <div class="room-connection-status" id="hub_connection_status">
+                    <span class="status-pulse-dot" id="hub_status_dot"></span>
+                    <span id="hub_status_text">Waiting for opponent to join...</span>
+                </div>
+
+                <button class="room-leave-btn" id="hub_leave_btn" type="button" title="Leave Current Room">
+                    <span>🚪</span> Leave
+                </button>
+            </div>
+
+            <!-- Share Invitation Link Bar -->
+            <div class="invite-share-bar">
+                <span class="invite-label">INVITE LINK:</span>
+                <div class="invite-input-container">
+                    <input type="text" id="hub_share_url_input" class="invite-url-input" readonly>
+                    <button class="invite-btn copy-btn" id="hub_copy_url_btn" type="button">
+                        <span>📋</span> Copy Link
+                    </button>
+                    <button class="invite-btn share-btn" id="hub_share_url_btn" type="button">
+                        <span>📤</span> Share
+                    </button>
+                </div>
+            </div>
+
+            <!-- Hosting & Network Notice -->
+            <div class="invite-network-info" id="hub_network_info">
+                <div class="network-info-left">
+                    <span class="network-badge" id="hub_network_badge">🌐 PUBLIC LINK</span>
+                    <span class="network-desc" id="hub_network_desc">Ready for other phones, tablets &amp; PCs over the internet.</span>
+                </div>
+                <button class="local-tab-test-btn" id="hub_local_tab_btn" type="button" title="Open room in a second local tab for testing on this PC">
+                    <span>🧪</span> Test on this PC (2nd Tab)
+                </button>
+            </div>
+
+            <!-- Waiting Radar Display (Shown when waiting for Guest) -->
+            <div class="waiting-radar-box" id="hub_waiting_box">
+                <div class="radar-pulse"></div>
+                <p class="waiting-title">Awaiting Challenger</p>
+                <p class="waiting-desc">Share the invite link with a friend. Once they open it, your duel will start automatically!</p>
+            </div>
+
+        </section>
+
+        <!-- Match Series Bar (Best of 3, 5, Endless) -->
+        <section class="series-bar" id="series_bar" aria-label="Match settings">
+
+            <div class="series-config">
+                <span class="series-label">SERIES MODE:</span>
+                <div class="series-options" role="radiogroup" aria-label="Target wins">
+                    <button class="series-btn active" type="button" data-series="3" role="radio" aria-checked="true">First to 3</button>
+                    <button class="series-btn" type="button" data-series="5" role="radio" aria-checked="false">First to 5</button>
+                    <button class="series-btn" type="button" data-series="0" role="radio" aria-checked="false">Endless</button>
+                </div>
+            </div>
+
+            <div class="streak-tracker" id="streak_tracker">
+                <span class="streak-icon">🔥</span>
+                <span class="streak-label">WIN STREAK:</span>
+                <span class="streak-value" id="streak_value">0</span>
+            </div>
+
+        </section>
+
+        <!-- Hero Section -->
+        <section class="hero" id="hero_section">
+            <p class="eyebrow" id="hero_eyebrow">READY YOUR STRATEGY</p>
+            <h2 id="hero_title">Make your <span>move.</span></h2>
+            <p class="hero-subtitle" id="hero_subtitle">
+                One choice. One opponent. Let the championship battle begin.
+            </p>
+        </section>
+
+        <!-- Battle Arena -->
+        <section class="arena" id="arena" aria-label="Game arena">
+
+            <!-- Fighter 1 (Player 1 / You / Host) -->
+            <div class="fighter fighter-p1" id="fighter_p1">
+
+                <div class="fighter-header">
+                    <span class="status-dot p1-dot"></span>
+                    <span class="fighter-name" id="p1_name_display">YOU</span>
+                </div>
+
+                <!-- Match Target Progress Pips -->
+                <div class="target-pips" id="p1_pips" aria-label="P1 round wins"></div>
+
+                <div class="move-display" id="user_move">
+                    <span class="move-placeholder">?</span>
+                </div>
+
+                <p class="fighter-caption" id="user_caption">
+                    Ready for battle
+                </p>
+
+            </div>
+
+            <!-- VS Centerpiece -->
+            <div class="versus">
+                <div class="round-badge" id="round_badge">ROUND 1</div>
+                <div class="versus-core">
+                    <span class="versus-line"></span>
+                    <div class="versus-badge" id="versus_badge">VS</div>
+                    <span class="versus-line"></span>
+                </div>
+                <div class="match-point-indicator" id="match_point_tag">MATCH POINT</div>
+            </div>
+
+            <!-- Fighter 2 (CPU / Player 2 / Guest) -->
+            <div class="fighter fighter-p2" id="fighter_p2">
+
+                <div class="fighter-header">
+                    <span class="status-dot cpu-dot" id="p2_dot"></span>
+                    <span class="fighter-name" id="p2_name_display">COMPUTER</span>
+                </div>
+
+                <!-- Match Target Progress Pips -->
+                <div class="target-pips" id="p2_pips" aria-label="P2 round wins"></div>
+
+                <div class="move-display" id="comp_move">
+                    <span class="move-placeholder">?</span>
+                </div>
+
+                <p class="fighter-caption" id="comp_caption">
+                    Waiting for your move
+                </p>
+
+            </div>
+
+        </section>
+
+        <!-- Scoreboard -->
+        <section class="scoreboard" id="scoreboard_section" aria-label="Scoreboard">
+
+            <div class="score-card player-score-card">
+                <div class="score-icon">⚡</div>
+                <div>
+                    <p class="score-label" id="score_label_p1">YOUR SCORE</p>
+                    <p class="score-number" id="you_score">0</p>
+                </div>
+            </div>
+
+            <div class="score-card draw-score-card">
+                <div class="score-icon">🤝</div>
+                <div>
+                    <p class="score-label">DRAWS</p>
+                    <p class="score-number" id="draw_score">0</p>
+                </div>
+            </div>
+
+            <div class="score-card cpu-score-card">
+                <div class="score-icon" id="score_icon_p2">🤖</div>
+                <div>
+                    <p class="score-label" id="score_label_p2">CPU SCORE</p>
+                    <p class="score-number" id="comp_score">0</p>
+                </div>
+            </div>
+
+        </section>
+
+        <!-- Controls: Solo Mode -->
+        <section class="controls solo-controls" id="solo_controls">
+
+            <div class="controls-header">
+                <p class="section-label">CHOOSE YOUR WEAPON</p>
+                <span class="shortcut-hint">Shortcuts: <strong>1</strong> Rock &bull; <strong>2</strong> Paper &bull; <strong>3</strong> Scissors</span>
+            </div>
+
+            <div class="choices">
+
+                <button class="choice" id="rock" type="button" aria-label="Choose rock" data-move="rock">
+                    <span class="choice-badge">1</span>
+                    <span class="choice-art">
+                        <img src="image/rock.jpg" alt="Rock">
+                    </span>
+                    <span class="choice-name">ROCK</span>
+                    <span class="choice-hint">Crushes Scissors</span>
+                </button>
+
+                <button class="choice" id="paper" type="button" aria-label="Choose paper" data-move="paper">
+                    <span class="choice-badge">2</span>
+                    <span class="choice-art">
+                        <img src="image/paper.jpg" alt="Paper">
+                    </span>
+                    <span class="choice-name">PAPER</span>
+                    <span class="choice-hint">Covers Rock</span>
+                </button>
+
+                <button class="choice" id="scissors" type="button" aria-label="Choose scissors" data-move="scissors">
+                    <span class="choice-badge">3</span>
+                    <span class="choice-art">
+                        <img src="image/scissors_2.jpg" alt="Scissors">
+                    </span>
+                    <span class="choice-name">SCISSORS</span>
+                    <span class="choice-hint">Cuts Paper</span>
+                </button>
+
+            </div>
+
+        </section>
+
+        <!-- Controls: 2-Player Local Dual Dock (Shown in PvP mode) -->
+        <section class="controls pvp-controls" id="pvp_controls" style="display: none;">
+
+            <div class="pvp-banner">
+                <span class="pvp-banner-icon">🔒</span>
+                <span><strong>Simultaneous Secret Lock-in:</strong> Moves stay masked until both players lock in!</span>
+            </div>
+
+            <div class="pvp-split-dock">
+
+                <!-- Player 1 Side -->
+                <div class="pvp-player-dock pvp-p1-dock">
+
+                    <div class="dock-header">
+                        <div class="dock-title">
+                            <span class="status-dot p1-dot"></span>
+                            <span>PLAYER 1</span>
+                        </div>
+                        <span class="dock-status-badge" id="p1_status_badge">WAITING</span>
+                    </div>
+
+                    <div class="dock-shortcuts">Keys: [A] Rock &bull; [S] Paper &bull; [D] Scissors</div>
+
+                    <div class="pvp-choices">
+                        <button class="pvp-choice-btn" id="p1_rock" type="button" data-player="1" data-move="rock" aria-label="Player 1 chooses rock">
+                            <span class="pvp-key-hint">A</span>
+                            <span class="pvp-icon">🗿</span>
+                            <span class="pvp-label">ROCK</span>
+                        </button>
+                        <button class="pvp-choice-btn" id="p1_paper" type="button" data-player="1" data-move="paper" aria-label="Player 1 chooses paper">
+                            <span class="pvp-key-hint">S</span>
+                            <span class="pvp-icon">📄</span>
+                            <span class="pvp-label">PAPER</span>
+                        </button>
+                        <button class="pvp-choice-btn" id="p1_scissors" type="button" data-player="1" data-move="scissors" aria-label="Player 1 chooses scissors">
+                            <span class="pvp-key-hint">D</span>
+                            <span class="pvp-icon">✂️</span>
+                            <span class="pvp-label">SCISSORS</span>
+                        </button>
+                    </div>
+
+                </div>
+
+                <!-- Dock Center Divider -->
+                <div class="dock-divider">
+                    <span class="dock-divider-badge">VS</span>
+                </div>
+
+                <!-- Player 2 Side -->
+                <div class="pvp-player-dock pvp-p2-dock">
+
+                    <div class="dock-header">
+                        <div class="dock-title">
+                            <span class="status-dot cpu-dot"></span>
+                            <span>PLAYER 2</span>
+                        </div>
+                        <span class="dock-status-badge" id="p2_status_badge">WAITING</span>
+                    </div>
+
+                    <div class="dock-shortcuts">Keys: [J/←] Rock &bull; [K/↑] Paper &bull; [L/→] Scissors</div>
+
+                    <div class="pvp-choices">
+                        <button class="pvp-choice-btn" id="p2_rock" type="button" data-player="2" data-move="rock" aria-label="Player 2 chooses rock">
+                            <span class="pvp-key-hint">J / ←</span>
+                            <span class="pvp-icon">🗿</span>
+                            <span class="pvp-label">ROCK</span>
+                        </button>
+                        <button class="pvp-choice-btn" id="p2_paper" type="button" data-player="2" data-move="paper" aria-label="Player 2 chooses paper">
+                            <span class="pvp-key-hint">K / ↑</span>
+                            <span class="pvp-icon">📄</span>
+                            <span class="pvp-label">PAPER</span>
+                        </button>
+                        <button class="pvp-choice-btn" id="p2_scissors" type="button" data-player="2" data-move="scissors" aria-label="Player 2 chooses scissors">
+                            <span class="pvp-key-hint">L / →</span>
+                            <span class="pvp-icon">✂️</span>
+                            <span class="pvp-label">SCISSORS</span>
+                        </button>
+                    </div>
+
+                </div>
+
+            </div>
+
+        </section>
+
+        <!-- Controls: Online Multiplayer Dock (Shown in Online active room) -->
+        <section class="controls online-controls" id="online_controls" style="display: none;">
+
+            <div class="controls-header">
+                <p class="section-label">YOUR ONLINE WEAPON DOCK</p>
+                <span class="shortcut-hint">Shortcuts: <strong>1</strong> Rock &bull; <strong>2</strong> Paper &bull; <strong>3</strong> Scissors</span>
+            </div>
+
+            <div class="pvp-banner online-banner">
+                <span class="pvp-banner-icon">🔒</span>
+                <span id="online_lock_status_text"><strong>Secret Move Selection:</strong> Your choice is masked from your opponent until both lock in!</span>
+            </div>
+
+            <div class="choices online-choices">
+
+                <button class="choice online-choice" id="online_rock" type="button" aria-label="Choose rock" data-move="rock">
+                    <span class="choice-badge">1</span>
+                    <span class="choice-art">
+                        <img src="image/rock.jpg" alt="Rock">
+                    </span>
+                    <span class="choice-name">ROCK</span>
+                    <span class="choice-hint">Crushes Scissors</span>
+                </button>
+
+                <button class="choice online-choice" id="online_paper" type="button" aria-label="Choose paper" data-move="paper">
+                    <span class="choice-badge">2</span>
+                    <span class="choice-art">
+                        <img src="image/paper.jpg" alt="Paper">
+                    </span>
+                    <span class="choice-name">PAPER</span>
+                    <span class="choice-hint">Covers Rock</span>
+                </button>
+
+                <button class="choice online-choice" id="online_scissors" type="button" aria-label="Choose scissors" data-move="scissors">
+                    <span class="choice-badge">3</span>
+                    <span class="choice-art">
+                        <img src="image/scissors_2.jpg" alt="Scissors">
+                    </span>
+                    <span class="choice-name">SCISSORS</span>
+                    <span class="choice-hint">Cuts Paper</span>
+                </button>
+
+            </div>
+
+        </section>
+
+        <!-- Result Panel -->
+        <section class="result-panel" id="result_panel" aria-live="polite">
+
+            <div class="result-symbol" id="result_symbol">
+                ✦
+            </div>
+
+            <div class="result-copy">
+                <p class="result-kicker" id="result_kicker">
+                    BATTLE STATUS
+                </p>
+                <p class="result-message" id="msg">
+                    Your move, champion.
+                </p>
+                <p class="result-detail" id="result_detail">
+                    Choose rock, paper or scissors to start a round.
+                </p>
+            </div>
+
+            <div class="result-actions">
+                <button class="reset-btn" id="reset_btn" type="button" title="Reset current match">
+                    <span>↻</span>
+                    Reset Match
+                </button>
+            </div>
+
+        </section>
+
+        <!-- Combat History Log -->
+        <section class="history-section" aria-label="Round history">
+            <div class="history-header">
+                <span class="section-label">COMBAT LOG</span>
+                <span class="history-count" id="history_count">0 ROUNDS PLAYED</span>
+            </div>
+            <div class="history-list" id="history_list">
+                <p class="history-empty">No rounds played yet. Make your first move!</p>
+            </div>
+        </section>
+
+        <!-- Live In-Game Arena Comms (Chat Box) -->
+        <aside class="arena-chat-panel" id="arena_chat_panel" style="display: none;" aria-label="Live Arena Chat">
+
+            <div class="chat-header">
+                <div class="chat-header-title">
+                    <span class="chat-dot"></span>
+                    <span>ARENA COMMS</span>
+                </div>
+                <div class="chat-header-actions">
+                    <button class="chat-icon-btn" id="chat_minimize_btn" type="button" title="Minimize / Expand Chat">&minus;</button>
+                </div>
+            </div>
+
+            <div class="chat-body" id="chat_body">
+
+                <!-- Message Stream -->
+                <div class="chat-messages" id="chat_messages">
+                    <div class="chat-system-msg">Welcome to Arena Comms! Send messages or tap reactions below.</div>
+                </div>
+
+                <!-- Quick Reaction Chips -->
+                <div class="chat-reactions" id="chat_reactions">
+                    <button class="reaction-chip" type="button" data-reaction="🗿">🗿</button>
+                    <button class="reaction-chip" type="button" data-reaction="📄">📄</button>
+                    <button class="reaction-chip" type="button" data-reaction="✂️">✂️</button>
+                    <button class="reaction-chip" type="button" data-reaction="🔥">🔥</button>
+                    <button class="reaction-chip" type="button" data-reaction="🏆">🏆</button>
+                    <button class="reaction-chip" type="button" data-reaction="Good game! 🤝">GG!</button>
+                    <button class="reaction-chip" type="button" data-reaction="Nice move! ⚡">Nice!</button>
+                    <button class="reaction-chip" type="button" data-reaction="One more round? 😈">Rematch?</button>
+                </div>
+
+                <!-- Input Form -->
+                <form class="chat-input-row" id="chat_form">
+                    <input type="text" id="chat_input" class="chat-input" placeholder="Transmit message to opponent..." maxlength="100" autocomplete="off">
+                    <button type="submit" class="chat-send-btn" id="chat_send_btn" aria-label="Send message">
+                        <span>➤</span>
+                    </button>
+                </form>
+
+            </div>
+
+        </aside>
+
+        <!-- Footer -->
+        <footer>
+            <span>ROCK • PAPER • SCISSORS PRO</span>
+            <span>SOLO • 2-PLAYER LOCAL • REALTIME ONLINE DUELS &bull; PRESS [M] FOR SOUND</span>
+        </footer>
+
+    </main>
+
+    <!-- Championship Celebration Modal -->
+    <div class="modal-backdrop" id="champ_modal" role="dialog" aria-modal="true" aria-labelledby="champ_title" style="display: none;">
+        <div class="modal-card">
+            <div class="champ-trophy">🏆</div>
+            <p class="eyebrow champ-eyebrow">CHAMPIONSHIP WINNER</p>
+            <h2 class="champ-title" id="champ_winner_name">PLAYER 1 WINS!</h2>
+            <p class="champ-score" id="champ_score_summary">Final Score: 3 - 1</p>
+            <p class="champ-message" id="champ_message">Dominant performance in the arena!</p>
+            <div class="champ-actions">
+                <button class="champ-btn" id="champ_rematch_btn" type="button">
+                    <span>⚔️</span> Play Rematch
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Controls & Rules Modal -->
+    <div class="modal-backdrop" id="controls_modal" role="dialog" aria-modal="true" aria-labelledby="controls_title" style="display: none;">
+        <div class="modal-card controls-card">
+            <div class="modal-header">
+                <h3 id="controls_title">Game Controls & Rules</h3>
+                <button class="modal-close-btn" id="modal_close_btn" type="button" aria-label="Close dialog">&times;</button>
+            </div>
+
+            <div class="rules-grid">
+                <div class="rules-card">
+                    <h4>⚔️ Game Modes</h4>
+                    <ul>
+                        <li><strong>Solo Mode:</strong> Battle against the intelligent Computer AI.</li>
+                        <li><strong>2-Player Mode:</strong> Play against a friend locally on the same device with simultaneous secret lock-ins!</li>
+                        <li><strong>Online Duel:</strong> Play in real time against another player over the internet with shareable links and live chat!</li>
+                    </ul>
+                </div>
+
+                <div class="rules-card">
+                    <h4>⌨️ Solo & Online Keyboard</h4>
+                    <ul>
+                        <li><kbd>1</kbd> or <kbd>R</kbd> &mdash; Rock</li>
+                        <li><kbd>2</kbd> or <kbd>P</kbd> &mdash; Paper</li>
+                        <li><kbd>3</kbd> or <kbd>S</kbd> &mdash; Scissors</li>
+                    </ul>
+                </div>
+
+                <div class="rules-card">
+                    <h4>👥 2-Player Local Dual Keyboard</h4>
+                    <p><strong>Player 1:</strong></p>
+                    <ul>
+                        <li><kbd>A</kbd> = Rock | <kbd>S</kbd> = Paper | <kbd>D</kbd> = Scissors</li>
+                    </ul>
+                    <p style="margin-top: 8px;"><strong>Player 2:</strong></p>
+                    <ul>
+                        <li><kbd>J</kbd> or <kbd>&larr;</kbd> = Rock</li>
+                        <li><kbd>K</kbd> or <kbd>&uarr;</kbd> = Paper</li>
+                        <li><kbd>L</kbd> or <kbd>&rarr;</kbd> = Scissors</li>
+                    </ul>
+                </div>
+
+                <div class="rules-card">
+                    <h4>✨ Universal Keys</h4>
+                    <ul>
+                        <li><kbd>M</kbd> &mdash; Toggle Audio Effects</li>
+                        <li><kbd>Space</kbd> &mdash; Reset Match</li>
+                        <li><kbd>Esc</kbd> &mdash; Close Modals</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <button class="champ-btn" id="modal_ok_btn" type="button">Got it, Let's Fight!</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Cloud / Firebase Setup Modal -->
+    <div class="modal-backdrop" id="cloud_modal" role="dialog" aria-modal="true" aria-labelledby="cloud_modal_title" style="display: none;">
+        <div class="modal-card cloud-modal-card">
+            <div class="modal-header">
+                <h3 id="cloud_modal_title">⚙️ Cloud Multiplayer Configuration</h3>
+                <button class="modal-close-btn" id="cloud_modal_close_btn" type="button" aria-label="Close dialog">&times;</button>
+            </div>
+
+            <div class="cloud-info-box">
+                <p>This game uses <strong>Firebase Realtime Database</strong> to synchronize online rooms, moves, scores, and live chat across devices.</p>
+                <div class="cloud-status-row">
+                    <span>Database Status:</span>
+                    <span class="cloud-live-pill" id="cloud_modal_status_pill">
+                        <span class="cloud-status-indicator" id="cloud_modal_status_dot"></span>
+                        <span id="cloud_modal_status_text">Checking connection...</span>
+                    </span>
+                </div>
+            </div>
+
+            <div class="cloud-steps-box">
+                <h4>Quick Firebase Console Setup (3 Steps):</h4>
+                <ol>
+                    <li>Go to <a href="https://console.firebase.google.com/" target="_blank" rel="noopener">console.firebase.google.com</a> and create or select your project.</li>
+                    <li>Click <strong>Build &rarr; Realtime Database &rarr; Create Database</strong> (Select Test Mode: <code>.read: true, .write: true</code>).</li>
+                    <li>Go to <strong>Project Settings (gear icon) &rarr; General &rarr; Your apps &rarr; Web (&lt;/&gt;)</strong> and paste the <code>firebaseConfig</code> object below.</li>
+                </ol>
+            </div>
+
+            <div class="cloud-form-group">
+                <label for="firebase_config_textarea">Firebase Configuration Object (JSON or JS snippet):</label>
+                <textarea id="firebase_config_textarea" class="cloud-textarea" rows="7" placeholder='{\n  "apiKey": "AIzaSy...",\n  "authDomain": "your-project.firebaseapp.com",\n  "databaseURL": "https://your-project-default-rtdb.firebaseio.com",\n  "projectId": "your-project",\n  "storageBucket": "your-project.appspot.com",\n  "messagingSenderId": "...",\n  "appId": "..."\n}'></textarea>
+                <p class="cloud-help-hint">
+                    Ensure your <code>databaseURL</code> ends with <code>.firebaseio.com</code> or <code>.firebasedatabase.app</code>, and your Realtime Database Rules allow read/write.
+                </p>
+            </div>
+
+            <div class="cloud-form-group">
+                <label for="custom_hosting_domain_input">Public Deployed URL (Optional Override):</label>
+                <input type="text" id="custom_hosting_domain_input" class="cloud-input" placeholder="https://your-game.vercel.app (or custom domain)">
+                <p class="cloud-help-hint">
+                    Optional: paste your live Vercel URL when testing locally so shared invite links open on other devices.
+                </p>
+            </div>
+
+            <div class="cloud-modal-actions">
+                <button class="action-btn" id="cloud_reset_btn" type="button">Reset to Default</button>
+                <button class="champ-btn" id="cloud_save_btn" type="button">
+                    <span>💾</span> Save & Connect
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification Toast -->
+    <div class="toast-notification" id="toast_notification" style="display: none;" role="alert"></div>
+
+    <script src="firebase-config.js"></script>
+    <script src="rock.js"></script>
+
+</body>
+
+</html>

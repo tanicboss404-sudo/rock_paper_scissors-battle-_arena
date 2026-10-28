@@ -1,0 +1,20 @@
+{
+  "name": "rock-paper-scissors-pro",
+  "version": "1.0.0",
+  "description": "Professional Rock Paper Scissors Battle Arena with Real-time Firebase Multiplayer & Hosting",
+  "scripts": {
+    "login": "npx firebase-tools login",
+    "deploy": "npx firebase-tools deploy",
+    "deploy:hosting": "npx firebase-tools deploy --only hosting",
+    "deploy:database": "npx firebase-tools deploy --only database",
+    "serve": "npx firebase-tools serve --only hosting"
+  },
+  "keywords": [
+    "game",
+    "rock-paper-scissors",
+    "firebase",
+    "multiplayer",
+    "realtime"
+  ]
+}
+

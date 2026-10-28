@@ -1,0 +1,38 @@
+{
+  "cleanUrls": false,
+  "rewrites": [
+    {
+      "source": "/rock",
+      "destination": "/rock.html"
+    },
+    {
+      "source": "/index",
+      "destination": "/index.html"
+    }
+  ],
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "X-Frame-Options",
+          "value": "DENY"
+        }
+      ]
+    },
+    {
+      "source": "/image/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=604800, immutable"
+        }
+      ]
+    }
+  ]
+}
+

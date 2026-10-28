@@ -1,0 +1,92 @@
+{
+  "rules": {
+    "rooms": {
+      "$roomId": {
+        ".read": true,
+        ".write": true,
+        ".validate": "newData.hasChildren(['createdAt', 'hostId', 'hostName', 'round', 'scores', 'status'])",
+        "createdAt": {
+          ".validate": "newData.isNumber()"
+        },
+        "hostId": {
+          ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 64"
+        },
+        "hostName": {
+          ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 50"
+        },
+        "guestId": {
+          ".validate": "newData.val() == null || (newData.isString() && newData.val().length <= 64)"
+        },
+        "guestName": {
+          ".validate": "newData.val() == null || (newData.isString() && newData.val().length <= 50)"
+        },
+        "seriesTarget": {
+          ".validate": "newData.isNumber()"
+        },
+        "round": {
+          ".validate": "newData.isNumber() && newData.val() >= 1"
+        },
+        "scores": {
+          ".validate": "newData.hasChildren(['p1', 'p2', 'draws'])",
+          "p1": {
+            ".validate": "newData.isNumber() && newData.val() >= 0"
+          },
+          "p2": {
+            ".validate": "newData.isNumber() && newData.val() >= 0"
+          },
+          "draws": {
+            ".validate": "newData.isNumber() && newData.val() >= 0"
+          }
+        },
+        "status": {
+          ".validate": "newData.isString() && (newData.val() == 'waiting' || newData.val() == 'playing' || newData.val() == 'revealing' || newData.val() == 'round_over' || newData.val() == 'match_over')"
+        },
+        "p1Locked": {
+          ".validate": "newData.isBoolean()"
+        },
+        "p2Locked": {
+          ".validate": "newData.isBoolean()"
+        },
+        "p1Choice": {
+          ".validate": "newData.val() == null || (newData.isString() && (newData.val() == 'rock' || newData.val() == 'paper' || newData.val() == 'scissors'))"
+        },
+        "p2Choice": {
+          ".validate": "newData.val() == null || (newData.isString() && (newData.val() == 'rock' || newData.val() == 'paper' || newData.val() == 'scissors'))"
+        },
+        "p1Connected": {
+          ".validate": "newData.isBoolean()"
+        },
+        "p2Connected": {
+          ".validate": "newData.isBoolean()"
+        },
+        "outcome": {
+          ".validate": "newData.val() == null || newData.isString()"
+        },
+        "winner": {
+          ".validate": "newData.val() == null || newData.isString()"
+        },
+        "chat": {
+          "$msgId": {
+            ".validate": "newData.hasChildren(['senderId', 'senderName', 'text'])",
+            "senderId": {
+              ".validate": "newData.isString() && newData.val().length <= 64"
+            },
+            "senderName": {
+              ".validate": "newData.isString() && newData.val().length <= 50"
+            },
+            "senderRole": {
+              ".validate": "newData.val() == null || newData.isString()"
+            },
+            "text": {
+              ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 300"
+            },
+            "time": {
+              ".validate": "newData.isNumber()"
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
