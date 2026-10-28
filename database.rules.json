@@ -3,7 +3,7 @@
     "rooms": {
       "$roomId": {
         ".read": true,
-        ".write": true,
+        ".write": false,
         ".validate": "newData.hasChildren(['createdAt', 'hostId', 'hostName', 'round', 'scores', 'status'])",
         "createdAt": {
           ".validate": "newData.isNumber()"
